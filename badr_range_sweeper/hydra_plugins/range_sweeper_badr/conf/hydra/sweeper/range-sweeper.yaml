@@ -1,0 +1,3 @@
+hydra:
+  sweeper:
+    class: hydra_plugins.range_sweeper_badr.RangeSweeper
