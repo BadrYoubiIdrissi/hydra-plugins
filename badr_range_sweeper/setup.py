@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     LONG_DESC = fh.read()
     setup(
         name="hydra-range-sweeper-badr",
-        version="0.1.0",
+        version="0.1.1",
         author="Badr Youbi Idrissi",
         author_email="badryoubiidrissi@gmail.com",
         description="Custom Hydra Range Sweeper plugin",
