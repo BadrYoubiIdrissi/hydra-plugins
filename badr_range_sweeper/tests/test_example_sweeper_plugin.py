@@ -22,7 +22,7 @@ def test_launched_jobs(sweep_runner):  # noqa: F811
         calling_file=None,
         calling_module="hydra.test_utils.a_module",
         config_path="configs/compose.yaml",
-        overrides=["hydra/sweeper=range-sweeper", "hydra/launcher=basic", "foo=1,2", "bar=1:3"],
+        overrides=["hydra/sweeper=range", "hydra/launcher=basic", "foo=1,2", "bar=1:3"],
         strict=True,
     )
     with sweep:
