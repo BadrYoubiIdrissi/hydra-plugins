@@ -1,7 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import logging
+import functools
 
 from omegaconf import open_dict
+from omegaconf import OmegaConf
+from omegaconf import DictConfig
 
 from hydra._internal.config_search_path import ConfigSearchPath
 from hydra._internal.pathlib import Path
@@ -19,7 +22,31 @@ import ray
 
 log = logging.getLogger(__name__)
 
+def get_key(cfg, key):
+    if key == '':
+        return cfg
+    else:
+        keys = key.split('.')
+        if keys[0] in cfg:
+            return get_key(getattr(cfg, keys[0]), '.'.join(keys[1:]))
+        else:
+            return False
 
+def merge_kwargs(kwargs1, kwargs2):
+    k1 = kwargs1 if isinstance(kwargs1, DictConfig) else OmegaConf.create(kwargs1)
+    k2 = kwargs2 if isinstance(kwargs2, DictConfig) else OmegaConf.create(kwargs2)
+    merged = OmegaConf.merge(k1,k2)
+    return merged.to_container(resolve=True)
+
+def pass_conf(f, cfg, key):
+    item = get_key(cfg, key)
+    if item:
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            return f(*args, **merge_kwargs(item, kwargs))
+        return wrapper
+    else:
+        return f
 
 class RayLauncherSearchPathPlugin(SearchPathPlugin):
     """
@@ -49,7 +76,7 @@ class RayLauncher(Launcher):
         self.config_loader = config_loader
         self.task_function = task_function
         
-        ray.init(**config.ray.init) if 'ray.init' in config else ray.init()
+        if not ray.is_initialized(): pass_conf(ray.init, config, 'ray.init')()
 
     def launch(self, job_overrides):
         """
@@ -80,7 +107,11 @@ class RayLauncher(Launcher):
                 sweep_config.hydra.job.num = idx
             HydraConfig().set_config(sweep_config)
 
-            run_job_ray = ray.remote(**self.config.ray.remote)(launch) if 'ray.remote' in self.config else ray.remote(launch)
+            ray_remote_cfg = get_key(self.config, 'ray.remote')
+            if ray_remote_cfg:
+                run_job_ray = ray.remote(**ray_remote_cfg)(launch)
+            else:
+                run_job_ray = ray.remote(launch)
 
             ret = run_job_ray.remote(
                 config=sweep_config,
@@ -88,6 +119,7 @@ class RayLauncher(Launcher):
                 job_dir_key="hydra.sweep.dir",
                 job_subdir_key="hydra.sweep.subdir",
             )
+
             runs.append(ret)
             configure_log(self.config.hydra.hydra_logging, self.config.hydra.verbose)
         
