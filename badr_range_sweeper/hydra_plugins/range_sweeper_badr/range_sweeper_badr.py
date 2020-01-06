@@ -46,7 +46,7 @@ class RangeSweeper(Sweeper):
         src_lists = []
         for s in arguments:
             key, value = s.split("=")
-            gl = re.match(r'glob\((.+)\)', s)
+            gl = re.match(r'glob\((.+)\)', value)
             if ',' in value:
                 possible_values=value.split(',')
             elif ':' in value:

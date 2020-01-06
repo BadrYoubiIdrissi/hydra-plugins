@@ -36,3 +36,15 @@ def test_launched_jobs(sweep_runner):  # noqa: F811
         assert job_ret[2].cfg == {"foo": 2, "bar": 1}
         assert job_ret[3].overrides == ["foo=2", "bar=2"]
         assert job_ret[3].cfg == {"foo": 2, "bar": 2}
+
+def test_glob_jobs(sweep_runner):  # noqa: F811
+    sweep = sweep_runner(
+        calling_file=None,
+        calling_module="hydra.test_utils.a_module",
+        config_path="configs/compose.yaml",
+        overrides=["hydra/sweeper=range", "hydra/launcher=basic", "foo=glob(*)"],
+        strict=True,
+    )
+    with sweep:
+        job_ret = sweep.returns[0]
+        print(job_ret)
