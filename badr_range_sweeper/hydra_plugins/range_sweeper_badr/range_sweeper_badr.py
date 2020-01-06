@@ -1,6 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import itertools
 import logging
+import re
+import glob
 
 from hydra._internal.config_search_path import ConfigSearchPath
 
@@ -44,10 +46,13 @@ class RangeSweeper(Sweeper):
         src_lists = []
         for s in arguments:
             key, value = s.split("=")
+            gl = re.match(r'glob\((.+)\)', s)
             if ',' in value:
                 possible_values=value.split(',')
             elif ':' in value:
                 possible_values=range(*[int(v) for v in value.split(':')])
+            elif gl:
+                possible_values=list(glob.glob(gl[1], recursive=True))
             else:
                 possible_values=[value]
             src_lists.append(["{}={}".format(key, val) for val in possible_values])
